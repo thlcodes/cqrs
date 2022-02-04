@@ -27,8 +27,8 @@ use crate::aggregate::Aggregate;
 ///
 /// # Examples
 /// ```
-/// # use cqrs_es::doc::Customer;
-/// # use cqrs_es::{Aggregate,DomainEvent};
+/// # use cqrs_actors::doc::Customer;
+/// # use cqrs_actors::{Aggregate,DomainEvent};
 /// # use serde::{Serialize,Deserialize};
 /// #[derive(Clone,Debug,Serialize,Deserialize,PartialEq)]
 /// pub enum CustomerEvent {

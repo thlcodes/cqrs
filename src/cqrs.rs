@@ -41,9 +41,9 @@ where
     /// such as found in [postgres-es](https://crates.io/crates/postgres-es).
     ///
     /// ```
-    /// # use cqrs_es::doc::MyAggregate;
-    /// use cqrs_es::CqrsFramework;
-    /// use cqrs_es::mem_store::MemStore;
+    /// # use cqrs_actors::doc::MyAggregate;
+    /// use cqrs_actors::CqrsFramework;
+    /// use cqrs_actors::mem_store::MemStore;
     ///
     /// let store = MemStore::<MyAggregate>::default();
     /// let cqrs = CqrsFramework::new(store, vec![]);

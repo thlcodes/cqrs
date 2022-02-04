@@ -9,8 +9,8 @@ use crate::{AggregateError, DomainEvent};
 ///
 /// # Examples
 /// ```rust
-/// # use cqrs_es::doc::{CustomerEvent, CustomerCommand};
-/// # use cqrs_es::{Aggregate, AggregateError, UserErrorPayload};
+/// # use cqrs_actors::doc::{CustomerEvent, CustomerCommand};
+/// # use cqrs_actors::{Aggregate, AggregateError, UserErrorPayload};
 /// # use serde::{Serialize,Deserialize};
 /// #[derive(Default,Serialize,Deserialize)]
 /// struct Customer {

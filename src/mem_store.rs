@@ -10,9 +10,9 @@ use crate::{Aggregate, AggregateContext, AggregateError, EventStore};
 ///
 /// Creation and use in a constructing a `CqrsFramework`:
 /// ```
-/// # use cqrs_es::doc::MyAggregate;
-/// use cqrs_es::CqrsFramework;
-/// use cqrs_es::mem_store::MemStore;
+/// # use cqrs_actors::doc::MyAggregate;
+/// use cqrs_actors::CqrsFramework;
+/// use cqrs_actors::mem_store::MemStore;
 ///
 /// let store = MemStore::<MyAggregate>::default();
 /// let cqrs = CqrsFramework::new(store, vec![]);
@@ -36,9 +36,9 @@ impl<A: Aggregate> MemStore<A> {
     /// This can be used to verify the state of events that have been committed.
     /// Example of reading and displaying stored events:
     /// ```
-    /// # use cqrs_es::doc::MyAggregate;
-    /// # use cqrs_es::EventEnvelope;
-    /// # use cqrs_es::mem_store::MemStore;
+    /// # use cqrs_actors::doc::MyAggregate;
+    /// # use cqrs_actors::EventEnvelope;
+    /// # use cqrs_actors::mem_store::MemStore;
     /// let store = MemStore::<MyAggregate>::default();
     /// //...
     /// let all_locked_events = store.get_events();

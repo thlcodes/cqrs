@@ -43,9 +43,9 @@ pub mod doc;
 /// require persistence after running.
 ///
 /// ```
-/// # use cqrs_es::doc::MyAggregate;
-/// use cqrs_es::CqrsFramework;
-/// use cqrs_es::mem_store::MemStore;
+/// # use cqrs_actors::doc::MyAggregate;
+/// use cqrs_actors::CqrsFramework;
+/// use cqrs_actors::mem_store::MemStore;
 ///
 /// let store = MemStore::<MyAggregate>::default();
 /// let cqrs = CqrsFramework::new(store, vec![]);
@@ -57,8 +57,8 @@ pub mod mem_store;
 /// your application logic.
 ///
 /// ```
-/// # use cqrs_es::test::TestFramework;
-/// # use cqrs_es::doc::{Customer, CustomerEvent, CustomerCommand};
+/// # use cqrs_actors::test::TestFramework;
+/// # use cqrs_actors::doc::{Customer, CustomerEvent, CustomerCommand};
 /// type CustomerTestFramework = TestFramework<Customer>;
 ///
 /// CustomerTestFramework::default()

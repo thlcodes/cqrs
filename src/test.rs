@@ -7,8 +7,8 @@ use crate::AggregateError;
 /// parts of any DDD system.
 ///
 /// ```
-/// # use cqrs_es::doc::MyAggregate;
-/// use cqrs_es::test::TestFramework;
+/// # use cqrs_actors::doc::MyAggregate;
+/// use cqrs_actors::test::TestFramework;
 ///
 /// let framework = TestFramework::<MyAggregate>::default();
 /// ```
@@ -23,8 +23,8 @@ where
     /// Initiates an aggregate test with no previous events.
     ///
     /// ```
-    /// # use cqrs_es::doc::MyAggregate;
-    /// use cqrs_es::test::TestFramework;
+    /// # use cqrs_actors::doc::MyAggregate;
+    /// use cqrs_actors::test::TestFramework;
     ///
     /// let executor = TestFramework::<MyAggregate>::default()
     ///     .given_no_previous_events();
@@ -36,8 +36,8 @@ where
     /// Initiates an aggregate test with a collection of previous events.
     ///
     /// ```
-    /// # use cqrs_es::doc::{MyAggregate, MyEvents};
-    /// use cqrs_es::test::TestFramework;
+    /// # use cqrs_actors::doc::{MyAggregate, MyEvents};
+    /// use cqrs_actors::test::TestFramework;
     ///
     /// let executor = TestFramework::<MyAggregate>::default()
     ///     .given(vec![MyEvents::SomethingWasDone]);
@@ -75,8 +75,8 @@ where
     /// to test against.
     ///
     /// ```
-    /// # use cqrs_es::doc::{MyAggregate, MyCommands};
-    /// use cqrs_es::test::TestFramework;
+    /// # use cqrs_actors::doc::{MyAggregate, MyCommands};
+    /// use cqrs_actors::test::TestFramework;
     ///
     /// let executor = TestFramework::<MyAggregate>::default().given_no_previous_events();
     ///
@@ -104,8 +104,8 @@ impl<A: Aggregate> AggregateResultValidator<A> {
     /// Verifies that the expected events have been produced by the command.
     ///
     /// ```
-    /// # use cqrs_es::doc::{MyAggregate, MyCommands, MyEvents};
-    /// use cqrs_es::test::TestFramework;
+    /// # use cqrs_actors::doc::{MyAggregate, MyCommands, MyEvents};
+    /// use cqrs_actors::test::TestFramework;
     ///
     /// let validator = TestFramework::<MyAggregate>::default()
     ///     .given_no_previous_events()
@@ -125,8 +125,8 @@ impl<A: Aggregate> AggregateResultValidator<A> {
     /// Verifies that an `AggregateError` with the expected message is produced with the command.
     ///
     /// ```
-    /// # use cqrs_es::doc::{MyAggregate, MyCommands, MyEvents};
-    /// use cqrs_es::test::TestFramework;
+    /// # use cqrs_actors::doc::{MyAggregate, MyCommands, MyEvents};
+    /// use cqrs_actors::test::TestFramework;
     ///
     /// let validator = TestFramework::<MyAggregate>::default()
     ///     .given_no_previous_events()

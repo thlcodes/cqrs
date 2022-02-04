@@ -72,7 +72,7 @@ impl<T: std::error::Error> AggregateError<T> {
     /// A convenience function to construct a simple `AggregateError::UserError` with the given payload.
     ///
     /// ```
-    /// # use cqrs_es::{AggregateError, UserErrorPayload};
+    /// # use cqrs_actors::{AggregateError, UserErrorPayload};
     /// let error = AggregateError::new(UserErrorPayload {
     ///             code: None,
     ///             message: Some("user already exists".to_string()),
