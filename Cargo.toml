@@ -1,20 +1,24 @@
 [package]
-name = "cqrs-es"
-version = "0.2.5"
-authors = ["Dave Garred <dave.garred@serverlesstechnology.com>"]
+name = "cqrs-actors"
+version = "0.0.1-alpha"
+authors = [
+    "Dave Garred <dave.garred@serverlesstechnology.com>",
+    "Thomas Liebeskind <thomas.liebeskind@gmail.com>",
+]
 edition = "2021"
 license = "MIT"
-keywords = ["cqrs", "event-sourcing", "serverless"]
-description = "A lightweight, opinionated CQRS and event sourcing framework targeting serverless architectures."
-documentation = "https://docs.rs/cqrs-es"
-repository = "https://github.com/serverlesstechnology/cqrs"
+keywords = ["cqrs", "event-sourcing", "actors"]
+description = "A lightweight, opinionated CQRS and event sourcing framework targeting serverless architectures, with actors."
+documentation = "https://docs.rs/cqrs-actors"
+repository = "https://github.com/thlcodes/cqrs-actors"
 readme = "README.md"
 
 [dependencies]
 async-trait = "0.1.52"
-serde = { version = "1.0", features = ["derive"]}
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+actix = "0.12"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }
-uuid = { version = "0.8.2", features = ["v4"]}
+uuid = { version = "0.8.2", features = ["v4"] }

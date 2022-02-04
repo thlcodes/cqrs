@@ -1,6 +1,7 @@
 # cqrs
 
-**A lightweight, opinionated CQRS and event sourcing framework targeting serverless architectures.**
+**A lightweight, opinionated CQRS and event sourcing framework targeting serverless architectures.**   
+**Now with actors via [Actix](https://actix.rs)**
 
 Command Query Responsibility Segregation (CQRS) is a pattern in
 [Domain Driven Design](https://martinfowler.com/tags/domain%20driven%20design.html)
@@ -13,14 +14,9 @@ Together these provide a number of benefits:
 - Greater isolation of the [aggregate](https://martinfowler.com/bliki/DDD_Aggregate.html).
 - Ability to create views that more accurately model our business environment.
 - A horizontally scalable read path.
+- **Now with Actors via [Actix](https://actix.rs)!**
 
 
-Things that could be helpful:
-- [User guide](https://doc.rust-cqrs.org) along with an introduction to CQRS and event sourcing.
-- [Demo application](https://github.com/serverlesstechnology/cqrs-demo) using the warp http server.
-- [Change log](https://github.com/serverlesstechnology/cqrs/blob/master/versions/change_log.md)
-
-
-[![Crates.io](https://img.shields.io/crates/v/cqrs-es)](https://crates.io/crates/cqrs-es)
-[![docs](https://img.shields.io/badge/API-docs-blue.svg)](https://docs.rs/cqrs-es)
+[![Crates.io](https://img.shields.io/crates/v/cqrs-actors)](https://crates.io/crates/cqrs-actors)
+[![docs](https://img.shields.io/badge/API-docs-blue.svg)](https://docs.rs/cqrs-actors)
 
