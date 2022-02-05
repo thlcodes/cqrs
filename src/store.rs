@@ -1,3 +1,4 @@
+use actix::Addr;
 use async_trait::async_trait;
 use std::collections::HashMap;
 
@@ -19,7 +20,10 @@ where
     /// Load all events for a particular `aggregate_id`
     async fn load(&self, aggregate_id: &str) -> Vec<EventEnvelope<A>>;
     /// Load aggregate at current state
-    async fn load_aggregate(&self, aggregate_id: &str) -> Self::AC;
+    async fn load_aggregate(
+        &self,
+        aggregate_id: &str,
+    ) -> Result<Self::AC, AggregateError<A::Error>>;
     /// Commit new events
     async fn commit(
         &self,
@@ -62,5 +66,5 @@ where
     A: Aggregate,
 {
     /// The aggregate instance with all state loaded.
-    fn aggregate(&self) -> &A;
+    fn aggregate(&self) -> &Addr<A>;
 }

@@ -1,8 +1,10 @@
+use actix::{Actor, Context, Handler, Message};
 use serde::{Deserialize, Serialize};
 
-use crate::{Aggregate, AggregateError, DomainEvent, UserErrorPayload};
+use crate::{Aggregate, DomainEvent, Result, UserErrorPayload};
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Message)]
+#[rtype(result = "()")]
 pub enum MyEvents {
     SomethingWasDone,
 }
@@ -14,13 +16,16 @@ impl DomainEvent for MyEvents {
         todo!()
     }
 }
-#[derive(Debug, Serialize, Deserialize)]
+
+#[derive(Debug, Serialize, Deserialize, Message)]
+#[rtype(result = "Result<Vec<MyEvents>, UserErrorPayload>")]
 pub enum MyCommands {
     DoSomething,
     BadCommand,
 }
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct MyAggregate;
+
 impl Aggregate for MyAggregate {
     type Command = MyCommands;
     type Event = MyEvents;
@@ -29,18 +34,27 @@ impl Aggregate for MyAggregate {
     fn aggregate_type() -> &'static str {
         todo!()
     }
+}
 
-    fn handle(
-        &self,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, AggregateError<UserErrorPayload>> {
-        match command {
+impl Actor for MyAggregate {
+    type Context = Context<Self>;
+}
+
+impl Handler<MyCommands> for MyAggregate {
+    type Result = Result<Vec<MyEvents>, UserErrorPayload>;
+
+    fn handle(&mut self, msg: MyCommands, _ctx: &mut Self::Context) -> Self::Result {
+        match msg {
             MyCommands::DoSomething => Ok(vec![MyEvents::SomethingWasDone]),
             MyCommands::BadCommand => Err("the expected error message".into()),
         }
     }
+}
 
-    fn apply(&mut self, _event: Self::Event) {}
+impl Handler<MyEvents> for MyAggregate {
+    type Result = ();
+
+    fn handle(&mut self, _msg: MyEvents, _ctx: &mut Self::Context) -> Self::Result {}
 }
 
 #[derive(Serialize, Deserialize)]
@@ -58,12 +72,17 @@ impl Aggregate for Customer {
     fn aggregate_type() -> &'static str {
         "customer"
     }
+}
 
-    fn handle(
-        &self,
-        command: Self::Command,
-    ) -> Result<Vec<Self::Event>, AggregateError<Self::Error>> {
-        match command {
+impl Actor for Customer {
+    type Context = Context<Self>;
+}
+
+impl Handler<CustomerCommand> for Customer {
+    type Result = Result<Vec<CustomerEvent>, UserErrorPayload>;
+
+    fn handle(&mut self, msg: CustomerCommand, _ctx: &mut Self::Context) -> Self::Result {
+        match msg {
             CustomerCommand::AddCustomerName { changed_name } => {
                 if self.name.as_str() != "" {
                     return Err("a name has already been added for this customer".into());
@@ -73,9 +92,13 @@ impl Aggregate for Customer {
             CustomerCommand::UpdateEmail { .. } => Ok(Default::default()),
         }
     }
+}
 
-    fn apply(&mut self, event: Self::Event) {
-        match event {
+impl Handler<CustomerEvent> for Customer {
+    type Result = ();
+
+    fn handle(&mut self, msg: CustomerEvent, _ctx: &mut Self::Context) -> Self::Result {
+        match msg {
             CustomerEvent::NameAdded { changed_name } => {
                 self.name = changed_name;
             }
@@ -96,7 +119,8 @@ impl Default for Customer {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Message)]
+#[rtype(result = "()")]
 pub enum CustomerEvent {
     NameAdded { changed_name: String },
     EmailUpdated { new_email: String },
@@ -115,7 +139,8 @@ impl DomainEvent for CustomerEvent {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Message)]
+#[rtype(result = "Result<Vec<CustomerEvent>, UserErrorPayload>")]
 pub enum CustomerCommand {
     AddCustomerName { changed_name: String },
     UpdateEmail { new_email: String },
@@ -129,20 +154,21 @@ mod doc_tests {
 
     type CustomerTestFramework = TestFramework<Customer>;
 
-    #[test]
-    fn test_add_name() {
+    #[actix::test]
+    async fn test_add_name() {
         CustomerTestFramework::default()
             .given_no_previous_events()
             .when(CustomerCommand::AddCustomerName {
                 changed_name: "John Doe".to_string(),
             })
+            .await
             .then_expect_events(vec![CustomerEvent::NameAdded {
                 changed_name: "John Doe".to_string(),
             }]);
     }
 
-    #[test]
-    fn test_add_name_again() {
+    #[actix::test]
+    async fn test_add_name_again() {
         CustomerTestFramework::default()
             .given(vec![CustomerEvent::NameAdded {
                 changed_name: "John Doe".to_string(),
@@ -150,6 +176,7 @@ mod doc_tests {
             .when(CustomerCommand::AddCustomerName {
                 changed_name: "John Doe".to_string(),
             })
+            .await
             .then_expect_error("a name has already been added for this customer");
     }
 }

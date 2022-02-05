@@ -10,6 +10,7 @@ pub use crate::cqrs::*;
 pub use crate::error::*;
 pub use crate::event::*;
 pub use crate::query::*;
+pub use crate::registry::*;
 pub use crate::store::*;
 
 // Aggregate module holds the central traits that define the fundamental component of CQRS.
@@ -31,6 +32,9 @@ mod error;
 // Query provides the basic downstream query objects needed to render queries (or "views") that
 // describe the state of the system.
 mod query;
+
+// Registry provides an aggregate registry
+mod registry;
 
 // Documentation items
 #[doc(hidden)]
@@ -59,26 +63,33 @@ pub mod mem_store;
 /// ```
 /// # use cqrs_actors::test::TestFramework;
 /// # use cqrs_actors::doc::{Customer, CustomerEvent, CustomerCommand};
+/// # use actix::{System};
 /// type CustomerTestFramework = TestFramework<Customer>;
 ///
-/// CustomerTestFramework::default()
-///     .given_no_previous_events()
-///     .when(CustomerCommand::AddCustomerName{
-///             changed_name: "John Doe".to_string()
-///         })
-///     .then_expect_events(vec![
-///         CustomerEvent::NameAdded{
-///             changed_name: "John Doe".to_string()
-///         }]);
-///
-/// CustomerTestFramework::default()
-///     .given(vec![
-///         CustomerEvent::NameAdded {
-///             changed_name: "John Doe".to_string()
-///         }])
-///     .when(CustomerCommand::AddCustomerName {
-///             changed_name: "John Doe".to_string()
-///         })
-///     .then_expect_error("a name has already been added for this customer")
+/// let system = System::new();
+/// system.block_on(async {
+///   CustomerTestFramework::default()
+///       .given_no_previous_events()
+///       .when(CustomerCommand::AddCustomerName{
+///               changed_name: "John Doe".to_string()
+///           })
+///       .await
+///       .then_expect_events(vec![
+///           CustomerEvent::NameAdded{
+///               changed_name: "John Doe".to_string()
+///           }]);
+///  
+///   CustomerTestFramework::default()
+///       .given(vec![
+///           CustomerEvent::NameAdded {
+///               changed_name: "John Doe".to_string()
+///           }])
+///       .when(CustomerCommand::AddCustomerName {
+///               changed_name: "John Doe".to_string()
+///           })
+///       .await
+///  
+///       .then_expect_error("a name has already been added for this customer")
+/// });
 /// ```
 pub mod test;

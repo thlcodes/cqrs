@@ -18,6 +18,8 @@ async-trait = "0.1.52"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 actix = "0.12"
+thiserror = "1.0"
+anyhow = "1.0"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "rt"] }

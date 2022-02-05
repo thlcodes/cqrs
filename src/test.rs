@@ -82,12 +82,12 @@ where
     ///
     /// let validator = executor.when(MyCommands::DoSomething);
     /// ```
-    pub fn when(self, command: A::Command) -> AggregateResultValidator<A> {
-        let mut aggregate = A::default();
+    pub async fn when(self, command: A::Command) -> AggregateResultValidator<A> {
+        let aggregate = A::start_default();
         for event in self.events {
-            aggregate.apply(event);
+            aggregate.do_send(event);
         }
-        let result = aggregate.handle(command);
+        let result = aggregate.send(command).await.expect("mailbox error");
         AggregateResultValidator { result }
     }
 }
@@ -106,12 +106,15 @@ impl<A: Aggregate> AggregateResultValidator<A> {
     /// ```
     /// # use cqrs_actors::doc::{MyAggregate, MyCommands, MyEvents};
     /// use cqrs_actors::test::TestFramework;
+    /// use actix::System;
+    /// System::new().block_on(async {
+    ///   let validator = TestFramework::<MyAggregate>::default()
+    ///       .given_no_previous_events()
+    ///       .when(MyCommands::DoSomething)
+    ///       .await;
     ///
-    /// let validator = TestFramework::<MyAggregate>::default()
-    ///     .given_no_previous_events()
-    ///     .when(MyCommands::DoSomething);
-    ///
-    /// validator.then_expect_events(vec![MyEvents::SomethingWasDone]);
+    ///   validator.then_expect_events(vec![MyEvents::SomethingWasDone]);
+    /// });
     /// ```
     pub fn then_expect_events(self, expected_events: Vec<A::Event>) {
         let events = match self.result {
@@ -127,12 +130,14 @@ impl<A: Aggregate> AggregateResultValidator<A> {
     /// ```
     /// # use cqrs_actors::doc::{MyAggregate, MyCommands, MyEvents};
     /// use cqrs_actors::test::TestFramework;
+    /// actix::System::new().block_on( async {
+    ///   let validator = TestFramework::<MyAggregate>::default()
+    ///       .given_no_previous_events()
+    ///       .when(MyCommands::BadCommand)
+    ///       .await;
     ///
-    /// let validator = TestFramework::<MyAggregate>::default()
-    ///     .given_no_previous_events()
-    ///     .when(MyCommands::BadCommand);
-    ///
-    /// validator.then_expect_error("the expected error message");
+    ///   validator.then_expect_error("the expected error message");
+    /// });
     /// ```
     pub fn then_expect_error(self, error_message: &str) {
         match self.result {

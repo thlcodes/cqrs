@@ -1,3 +1,4 @@
+use actix::{Actor, Context, Handler, Message};
 use async_trait::async_trait;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
@@ -7,9 +8,9 @@ use serde::{Deserialize, Serialize};
 use cqrs_actors::mem_store::MemStore;
 use cqrs_actors::test::TestFramework;
 use cqrs_actors::{
-    Aggregate, AggregateError, CqrsFramework, DomainEvent, EventEnvelope, EventStore,
+    ActorRegistry, Aggregate, AggregateError, CqrsFramework, DomainEvent, EventEnvelope, EventStore,
 };
-use cqrs_actors::{Query, UserErrorPayload};
+use cqrs_actors::{Query, Result, UserErrorPayload};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TestAggregate {
@@ -24,15 +25,21 @@ impl Aggregate for TestAggregate {
     type Error = UserErrorPayload;
 
     fn aggregate_type() -> &'static str {
-        "TestAggregate"
+        "TestAggregates"
     }
+}
 
-    fn handle(&self, command: TestCommand) -> Result<Vec<TestEvent>, AggregateError<Self::Error>> {
-        match &command {
+impl Actor for TestAggregate {
+    type Context = Context<Self>;
+}
+
+impl Handler<TestCommand> for TestAggregate {
+    type Result = Result<Vec<TestEvent>, <Self as Aggregate>::Error>;
+
+    fn handle(&mut self, msg: TestCommand, _ctx: &mut Self::Context) -> Self::Result {
+        match msg {
             TestCommand::CreateTest(command) => {
-                let event = TestEvent::Created(Created {
-                    id: command.id.to_string(),
-                });
+                let event = TestEvent::Created(Created { id: command.id });
                 Ok(vec![event])
             }
 
@@ -43,30 +50,34 @@ impl Aggregate for TestAggregate {
                     }
                 }
                 let event = TestEvent::Tested(Tested {
-                    test_name: command.test_name.to_string(),
+                    test_name: command.test_name,
                 });
                 Ok(vec![event])
             }
 
             TestCommand::DoSomethingElse(command) => {
                 let event = TestEvent::SomethingElse(SomethingElse {
-                    description: command.description.clone(),
+                    description: command.description,
                 });
                 Ok(vec![event])
             }
         }
     }
+}
 
-    fn apply(&mut self, event: Self::Event) {
-        match event {
+impl Handler<TestEvent> for TestAggregate {
+    type Result = ();
+
+    fn handle(&mut self, msg: TestEvent, _ctx: &mut Self::Context) -> Self::Result {
+        match msg {
             TestEvent::Created(e) => {
-                self.id = e.id.clone();
+                self.id = e.id;
             }
             TestEvent::Tested(e) => {
-                self.tests.push(e.test_name.clone());
+                self.tests.push(e.test_name);
             }
             TestEvent::SomethingElse(e) => {
-                self.description = e.description.clone();
+                self.description = e.description;
             }
         }
     }
@@ -82,7 +93,8 @@ impl Default for TestAggregate {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Message)]
+#[rtype(result = "()")]
 pub enum TestEvent {
     Created(Created),
     Tested(Tested),
@@ -118,6 +130,8 @@ impl DomainEvent for TestEvent {
     }
 }
 
+#[derive(Message)]
+#[rtype(result = "Result<Vec<TestEvent>, UserErrorPayload>")]
 pub enum TestCommand {
     CreateTest(CreateTest),
     ConfirmTest(ConfirmTest),
@@ -164,13 +178,17 @@ fn metadata() -> HashMap<String, String> {
     metadata
 }
 
-#[tokio::test]
+#[actix::test]
 async fn test_mem_store() {
-    let event_store = MemStore::<TestAggregate>::default();
+    let registry = Arc::new(ActorRegistry::default());
+    let event_store = MemStore::<TestAggregate>::new_with_registry(registry);
     let id = "test_id_A";
-    let initial_events = event_store.load(&id).await;
+    let initial_events = event_store.load(id).await;
     assert_eq!(0, initial_events.len());
-    let agg_context = event_store.load_aggregate(&id).await;
+    let agg_context = event_store
+        .load_aggregate(id)
+        .await
+        .expect("aggregate load failed");
 
     event_store
         .commit(
@@ -182,9 +200,12 @@ async fn test_mem_store() {
         )
         .await
         .unwrap();
-    let stored_events = event_store.load(&id).await;
+    let stored_events = event_store.load(id).await;
     assert_eq!(1, stored_events.len());
-    let agg_context = event_store.load_aggregate(&id).await;
+    let agg_context = event_store
+        .load_aggregate(id)
+        .await
+        .expect("aggregate load failed");
 
     event_store
         .commit(
@@ -204,20 +225,20 @@ async fn test_mem_store() {
         )
         .await
         .unwrap();
-    let stored_envelopes = event_store.load(&id).await;
+    let stored_envelopes = event_store.load(id).await;
 
-    let mut agg = TestAggregate::default();
+    let agg = TestAggregate::start_default();
     for stored_envelope in stored_envelopes {
         let event = stored_envelope.payload;
-        agg.apply(event);
+        agg.do_send(event);
     }
     println!("{:#?}", agg);
 }
 
 type ThisTestFramework = TestFramework<TestAggregate>;
 
-#[test]
-fn test_framework_test() {
+#[actix::test]
+async fn test_framework_test() {
     let test_name = "test A";
     let test_framework = ThisTestFramework::default();
 
@@ -228,6 +249,7 @@ fn test_framework_test() {
         .when(TestCommand::ConfirmTest(ConfirmTest {
             test_name: test_name.to_string(),
         }))
+        .await
         .then_expect_events(vec![TestEvent::Tested(Tested {
             test_name: test_name.to_string(),
         })]);
@@ -239,12 +261,13 @@ fn test_framework_test() {
         .when(TestCommand::ConfirmTest(ConfirmTest {
             test_name: test_name.to_string(),
         }))
+        .await
         .then_expect_error("test already performed")
 }
 
-#[test]
+#[actix::test]
 #[should_panic]
-fn test_framework_failure_test() {
+async fn test_framework_failure_test() {
     let test_name = "test A";
     let test_framework = ThisTestFramework::default();
 
@@ -255,14 +278,15 @@ fn test_framework_failure_test() {
         .when(TestCommand::ConfirmTest(ConfirmTest {
             test_name: test_name.to_string(),
         }))
+        .await
         .then_expect_events(vec![TestEvent::Tested(Tested {
             test_name: test_name.to_string(),
         })]);
 }
 
-#[test]
+#[actix::test]
 #[should_panic]
-fn test_framework_failure_test_b() {
+async fn test_framework_failure_test_b() {
     let test_name = "test A";
     let test_framework = ThisTestFramework::default();
 
@@ -273,14 +297,15 @@ fn test_framework_failure_test_b() {
         .when(TestCommand::ConfirmTest(ConfirmTest {
             test_name: test_name.to_string(),
         }))
+        .await
         .then_expect_error("some error message")
 }
 
-#[tokio::test]
+#[actix::test]
 async fn framework_test() {
-    let event_store = MemStore::default();
+    let registry = Arc::new(ActorRegistry::default());
+    let event_store = MemStore::new_with_registry(registry);
     let stored_events = event_store.get_events();
-
     let delivered_events = Default::default();
     let view = TestView::new(Arc::clone(&delivered_events));
 

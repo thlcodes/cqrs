@@ -109,9 +109,12 @@ where
         command: A::Command,
         metadata: HashMap<String, String>,
     ) -> Result<(), AggregateError<A::Error>> {
-        let aggregate_context = self.store.load_aggregate(aggregate_id).await;
+        let aggregate_context = self.store.load_aggregate(aggregate_id).await?;
         let aggregate = aggregate_context.aggregate();
-        let resultant_events = aggregate.handle(command)?;
+        let resultant_events = aggregate
+            .send(command)
+            .await
+            .map_err(|err| AggregateError::TechnicalError(Box::new(err)))??;
         let committed_events = self
             .store
             .commit(resultant_events, aggregate_context, metadata)

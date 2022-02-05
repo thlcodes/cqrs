@@ -1,10 +1,11 @@
+use actix::Addr;
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 use async_trait::async_trait;
 
 use crate::event::EventEnvelope;
-use crate::{Aggregate, AggregateContext, AggregateError, EventStore};
+use crate::{ActorRegistry, Aggregate, AggregateContext, AggregateError, EventStore};
 
 ///  Simple memory store useful for application development and testing purposes.
 ///
@@ -19,12 +20,26 @@ use crate::{Aggregate, AggregateContext, AggregateError, EventStore};
 /// ```
 pub struct MemStore<A: Aggregate + Send + Sync> {
     events: Arc<LockedEventEnvelopeMap<A>>,
+    registry: Option<Arc<ActorRegistry>>,
 }
 
 impl<A: Aggregate> Default for MemStore<A> {
     fn default() -> Self {
+        Self {
+            events: Default::default(),
+            registry: None,
+        }
+    }
+}
+
+impl<A: Aggregate> MemStore<A> {
+    /// Create new with given registry
+    pub fn new_with_registry(registry: Arc<ActorRegistry>) -> Self {
         let events = Default::default();
-        MemStore { events }
+        MemStore {
+            events,
+            registry: Some(registry),
+        }
     }
 }
 
@@ -91,20 +106,29 @@ impl<A: Aggregate> EventStore<A> for MemStore<A> {
         events
     }
 
-    async fn load_aggregate(&self, aggregate_id: &str) -> MemStoreAggregateContext<A> {
+    async fn load_aggregate(
+        &self,
+        aggregate_id: &str,
+    ) -> Result<MemStoreAggregateContext<A>, AggregateError<A::Error>> {
         let committed_events = self.load(aggregate_id).await;
-        let mut aggregate = A::default();
+        let aggregate = match &self.registry {
+            Some(registry) => registry.get_with_factory(aggregate_id, |_| A::start_default()),
+            None => Ok(A::start_default()),
+        }
+        .map_err(|re| AggregateError::TechnicalError(Box::new(re)))?;
         let mut current_sequence = 0;
         for envelope in committed_events {
             current_sequence = envelope.sequence;
             let event = envelope.payload;
-            aggregate.apply(event);
+            // ignore any responses since events should always succeed.
+            // TODO: check if this is correct
+            aggregate.do_send(event);
         }
-        MemStoreAggregateContext {
+        Ok(MemStoreAggregateContext {
             aggregate_id: aggregate_id.to_string(),
             aggregate,
             current_sequence,
-        }
+        })
     }
 
     async fn commit(
@@ -146,7 +170,7 @@ where
     /// The aggregate ID of the aggregate instance that has been loaded.
     pub aggregate_id: String,
     /// The current state of the aggregate instance.
-    pub aggregate: A,
+    pub aggregate: Addr<A>,
     /// The last committed event sequence number for this aggregate instance.
     pub current_sequence: usize,
 }
@@ -155,7 +179,7 @@ impl<A> AggregateContext<A> for MemStoreAggregateContext<A>
 where
     A: Aggregate,
 {
-    fn aggregate(&self) -> &A {
+    fn aggregate(&self) -> &Addr<A> {
         &self.aggregate
     }
 }
